@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ボイチャ管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root[data-theme=dark] {
+  --bg: #0f1217;
+  --panel: #161a21;
+  --panel2: #242a34;
+  --line: #4a5567;
+  --text: #eceff4;
+  --sub: #a3aebd;
+  --accent: #f2b632;
+  --on-accent: #171103;
+  --danger: #ef5b4d;
+  --ok: #5ad08b;
+  --shadow: #000;
+}
+:root[data-theme=light] {
+  --bg: #efeae0;
+  --panel: #fffcf4;
+  --panel2: #f0eadc;
+  --line: #2b333d;
+  --text: #1c2128;
+  --sub: #5b6674;
+  --accent: #e3a419;
+  --on-accent: #1a1204;
+  --danger: #c7372b;
+  --ok: #17874b;
+  --shadow: #2b333d;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.6 "Noto Sans JP", system-ui, sans-serif; }
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 2px solid var(--line);
+}
+.brand { font: 20px "DotGothic16", "Noto Sans JP", sans-serif; }
+.brand span { margin-left: 10px; color: var(--accent); }
+.top-right { display: flex; gap: 10px; }
+main { max-width: 1100px; margin: 24px auto; padding: 0 16px 60px; }
+.panel { background: var(--panel); border: 2px solid var(--line); box-shadow: 5px 5px 0 var(--shadow); padding: 20px; }
+.narrow { max-width: 420px; margin: 40px auto; }
+h1, h2 { margin: 0 0 14px; font: 20px "DotGothic16", "Noto Sans JP", sans-serif; }
+label { display: block; margin-bottom: 12px; font-size: 13px; color: var(--sub); }
+input {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel2);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  outline: none;
+}
+input:focus { border-color: var(--accent); }
+button {
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  background: var(--panel2);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  padding: 5px 12px;
+  box-shadow: 2px 2px 0 var(--shadow);
+}
+button:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--shadow); }
+button:disabled { opacity: .5; }
+button.primary { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+button.danger { background: var(--danger); color: #fff; }
+button.ghost { background: transparent; box-shadow: none; }
+.tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.tabs button.on { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+.bar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: flex-end; }
+.bar label { margin: 0; flex: 1; min-width: 180px; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--sub); font-weight: 500; font-size: 12px; white-space: nowrap; }
+td.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; }
+td.acts { white-space: nowrap; }
+td.acts button { margin-right: 6px; }
+.tag { display: inline-block; padding: 0 7px; font-size: 11px; border: 2px solid var(--danger); color: var(--danger); }
+.sub { color: var(--sub); font-size: 12px; }
+.err { color: var(--danger); min-height: 20px; margin: 10px 0 0; }
+.empty { color: var(--sub); padding: 16px 4px; }
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 20px);
+  padding: 9px 16px;
+  background: var(--text);
+  color: var(--bg);
+  border: 2px solid var(--line);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+#toast.on { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">ボイチャ<span>管理画面</span></div>
+  <div class="top-right">
+    <button class="ghost" id="logoutBtn" hidden>ログアウト</button>
+    <button class="ghost" id="themeBtn"></button>
+  </div>
+</header>
+
+<main>
+  <section class="panel narrow" id="vLogin">
+    <h1>管理者ログイン</h1>
+    <label>パスワード
+      <input type="password" id="inPass" autocomplete="current-password">
+    </label>
+    <button class="primary" id="loginBtn">ログイン</button>
+    <p class="err" id="loginErr"></p>
+  </section>
+
+  <section id="vAdmin" hidden>
+    <div class="tabs" id="tabs"></div>
+    <div class="panel" id="body"></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://yuwxdhxzbkigszjtihcc.supabase.co";
+const SUPABASE_KEY = "sb_publishable_UfRNnQvavudPgLPKIFxbzg_haVn3eAE";
+
+const $ = id => document.getElementById(id);
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs || {})) {
+    if (key === "class") el.className = value;
+    else if (key.startsWith("on")) el.addEventListener(key.slice(2), value);
+    else if (value === true) el.setAttribute(key, "");
+    else if (value !== false && value != null) el.setAttribute(key, value);
+  }
+  for (const kid of kids.flat()) if (kid != null) el.append(kid);
+  return el;
+}
+
+let toastTimer;
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("on"), 3000);
+}
+
+let pass = "";
+
+async function call(name, args) {
+  const headers = { apikey: SUPABASE_KEY, "Content-Type": "application/json" };
+  if (SUPABASE_KEY.startsWith("eyJ")) headers.Authorization = "Bearer " + SUPABASE_KEY;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ p_pass: pass, ...(args || {}) })
+  });
+  if (!res.ok) throw new Error("通信エラー (" + res.status + ")");
+  const data = await res.json();
+  if (!data.ok && !data.error) {
+    logout();
+    throw new Error("パスワードが違うか、ロックされています");
+  }
+  return data;
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  $("themeBtn").textContent = theme === "dark" ? "ライトにする" : "ダークにする";
+  try { localStorage.setItem("vc_theme", theme); } catch {}
+}
+
+function fmt(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function table(heads, rows) {
+  if (!rows.length) return h("div", { class: "empty" }, "データがありません");
+  return h("div", { class: "scroll" },
+    h("table", {},
+      h("thead", {}, h("tr", {}, heads.map(t => h("th", {}, t)))),
+      h("tbody", {}, rows)
+    )
+  );
+}
+
+const tabs = {
+  accounts: { label: "アカウント", render: renderAccounts },
+  ips: { label: "IP BAN", render: renderIps },
+  rooms: { label: "部屋", render: renderRooms },
+  reports: { label: "通報", render: renderReports },
+  settings: { label: "設定", render: renderSettings }
+};
+let current = "accounts";
+
+function drawTabs() {
+  $("tabs").replaceChildren(...Object.entries(tabs).map(([key, t]) =>
+    h("button", {
+      class: key === current ? "on" : "",
+      onclick: () => { current = key; drawTabs(); tabs[key].render(); }
+    }, t.label)
+  ));
+}
+
+async function act(fn, done) {
+  try {
+    await fn();
+    if (done) toast(done);
+    tabs[current].render();
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function renderAccounts(query = "") {
+  const body = $("body");
+  const search = h("input", { type: "text", value: query, placeholder: "名前 / dbid / IP で検索" });
+  const go = () => renderAccounts(search.value.trim());
+  search.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+  body.replaceChildren(h("div", { class: "bar" }, h("label", {}, "検索", search), h("button", { class: "primary", onclick: go }, "検索")));
+  try {
+    const r = await call("vc_admin_accounts", { p_q: query });
+    body.append(table(["名前", "dbid", "IP", "最終ログイン", "状態", ""], r.rows.map(a =>
+      h("tr", {},
+        h("td", {},
+          a.name,
+          a.prev_names.length ? h("div", { class: "sub" }, "旧: " + a.prev_names.join(", ")) : null
+        ),
+        h("td", { class: "mono" }, a.dbid),
+        h("td", { class: "mono" }, a.last_ip),
+        h("td", {}, fmt(a.last_login)),
+        h("td", {}, a.banned ? h("span", { class: "tag" }, "BAN"): "", a.banned && a.ban_reason ? h("div", { class: "sub" }, a.ban_reason) : null),
+        h("td", { class: "acts" },
+          a.banned
+            ? h("button", { onclick: () => act(() => call("vc_admin_ban", { p_dbid: a.dbid, p_banned: false, p_reason: "" }), "解除しました") }, "解除")
+            : h("button", {
+                class: "danger",
+                onclick: () => {
+                  const reason = prompt(`${a.name} をBANします。理由(任意)`);
+                  if (reason === null) return;
+                  act(() => call("vc_admin_ban", { p_dbid: a.dbid, p_banned: true, p_reason: reason }), "BANしました");
+                }
+              }, "BAN"),
+          h("button", {
+            onclick: () => {
+              const reason = prompt(`${a.last_ip} をIP BANします。理由(任意)`);
+              if (reason === null) return;
+              act(() => call("vc_admin_ip_ban", { p_ip: a.last_ip, p_reason: reason }), "IPをBANしました");
+            }
+          }, "IP BAN")
+        )
+      )
+    )));
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function renderIps() {
+  const body = $("body");
+  const ip = h("input", { type: "text", placeholder: "例: 203.0.113.5" });
+  const reason = h("input", { type: "text", placeholder: "理由(任意)" });
+  body.replaceChildren(h("div", { class: "bar" },
+    h("label", {}, "IPアドレス", ip),
+    h("label", {}, "理由", reason),
+    h("button", { class: "danger", onclick: () => act(() => call("vc_admin_ip_ban", { p_ip: ip.value, p_reason: reason.value }), "追加しました") }, "BAN追加")
+  ));
+  try {
+    const r = await call("vc_admin_ip_list");
+    body.append(table(["IP", "理由", "日時", ""], r.rows.map(b =>
+      h("tr", {},
+        h("td", { class: "mono" }, b.ip),
+        h("td", {}, b.reason),
+        h("td", {}, fmt(b.created_at)),
+        h("td", { class: "acts" }, h("button", { onclick: () => act(() => call("vc_admin_ip_unban", { p_ip: b.ip }), "解除しました") }, "解除"))
+      )
+    )));
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function renderRooms() {
+  const body = $("body");
+  body.replaceChildren();
+  try {
+    const r = await call("vc_admin_rooms");
+    body.append(table(["部屋名", "人数", "参加中", "公開", "作成", ""], r.rows.map(x =>
+      h("tr", {},
+        h("td", {}, x.name),
+        h("td", {}, String(x.max_members)),
+        h("td", {}, x.members.length ? x.members.join(", ") : "-"),
+        h("td", {}, x.is_public ? "公開" : "非公開"),
+        h("td", {}, fmt(x.created_at)),
+        h("td", { class: "acts" }, h("button", {
+          class: "danger",
+          onclick: () => { if (confirm(`「${x.name}」を削除しますか`)) act(() => call("vc_admin_room_delete", { p_code: x.code }), "削除しました"); }
+        }, "削除"))
+      )
+    )));
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function renderReports() {
+  const body = $("body");
+  body.replaceChildren();
+  try {
+    const r = await call("vc_admin_reports");
+    body.append(table(["日時", "対象", "内容", "通報者dbid", ""], r.rows.map(x =>
+      h("tr", {},
+        h("td", {}, fmt(x.created_at)),
+        h("td", {}, x.target_name || "-", h("div", { class: "sub mono" }, x.target_dbid)),
+        h("td", {}, x.reason),
+        h("td", { class: "mono" }, x.reporter_dbid),
+        h("td", { class: "acts" },
+          h("button", {
+            class: "danger",
+            onclick: () => {
+              const reason = prompt(`${x.target_name || x.target_dbid} をBANします。理由(任意)`, x.reason.slice(0, 40));
+              if (reason === null) return;
+              act(() => call("vc_admin_ban", { p_dbid: x.target_dbid, p_banned: true, p_reason: reason }), "BANしました");
+            }
+          }, "BAN"),
+          h("button", { onclick: () => act(() => call("vc_admin_report_delete", { p_id: x.id }), "消しました") }, "対応済み")
+        )
+      )
+    )));
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+function renderSettings() {
+  const next = h("input", { type: "password", autocomplete: "new-password" });
+  $("body").replaceChildren(
+    h("h2", {}, "パスワード変更"),
+    h("label", {}, "新しいパスワード(8文字以上)", next),
+    h("button", {
+      class: "primary",
+      onclick: async () => {
+        try {
+          const r = await call("vc_admin_password", { p_new: next.value });
+          if (!r.ok) {
+            toast("8文字以上にしてください");
+            return;
+          }
+          pass = next.value;
+          try { sessionStorage.setItem("vc_admin", pass); } catch {}
+          next.value = "";
+          toast("変更しました");
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+    }, "変更する")
+  );
+}
+
+function logout() {
+  pass = "";
+  try { sessionStorage.removeItem("vc_admin"); } catch {}
+  $("vAdmin").hidden = true;
+  $("vLogin").hidden = false;
+  $("logoutBtn").hidden = true;
+}
+
+async function enter(candidate) {
+  pass = candidate;
+  const res = await call("vc_admin_login");
+  if (!res.ok) throw new Error("パスワードが違うか、ロックされています");
+  try { sessionStorage.setItem("vc_admin", pass); } catch {}
+  $("vLogin").hidden = true;
+  $("vAdmin").hidden = false;
+  $("logoutBtn").hidden = false;
+  drawTabs();
+  tabs[current].render();
+}
+
+$("loginBtn").addEventListener("click", async () => {
+  $("loginErr").textContent = "";
+  try {
+    await enter($("inPass").value);
+  } catch (e) {
+    pass = "";
+    $("loginErr").textContent = e.message;
+  }
+});
+$("inPass").addEventListener("keydown", e => { if (e.key === "Enter") $("loginBtn").click(); });
+$("logoutBtn").addEventListener("click", logout);
+$("themeBtn").addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
+
+(function boot() {
+  let saved = null;
+  try { saved = localStorage.getItem("vc_theme"); } catch {}
+  applyTheme(saved || "dark");
+  let stored = null;
+  try { stored = sessionStorage.getItem("vc_admin"); } catch {}
+  if (stored) enter(stored).catch(() => logout());
+})();
+</script>
+</body>
+</html>
